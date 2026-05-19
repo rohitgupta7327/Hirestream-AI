@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+/*  Useed in StudentDashboard.jsx for custom theming */
+@theme {
+  /* Dashboard Custom Theme Colors */
+  --color-background: #020612;
+  --color-card: #0F172A;
+  --color-header: #0A0D15;
+  --color-primary: #2563EB;
+  --color-textPrimary: #FFFFFF;
+  --color-textLabel: #7787A1;
+  --color-borderCard: #242F41;
+  --color-progress: #33C7FF;
+  --color-alert: #E11D48;
+  --color-alertBg: rgba(225, 29, 72, 0.1);
+  --color-success: #10B981;
+  --color-successBg: rgba(16, 185, 129, 0.1);
+}
+
+/* Custom Scrollbar Styles (Global) */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #334155 transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #334155;
+  border-radius: 20px;
+}
+
+/* Print Styles for PDF Export */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  nav,
+  section[data-html2canvas-ignore="true"],
+  button,
+  .custom-scrollbar::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .bg-card {
+    background: white !important;
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+    color: black !important;
+  }
+
+  .text-white,
+  .text-gray-200,
+  .text-gray-300,
+  .text-gray-400 {
+    color: black !important;
+  }
+
+  .h-80,
+  .h-96,
+  .h-60 {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  #pdf-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Force page breaks for better readability */
+  .grid {
+    display: block !important;
+  }
+
+  .grid>div {
+    margin-bottom: 20px !important;
+    page-break-inside: avoid !important;
+  }
+}
