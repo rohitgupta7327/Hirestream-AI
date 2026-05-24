@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("HirestreamAI Backend")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+93ab54a4faa53b2375d231c632ca24296753a84c")]
 [assembly: System.Reflection.AssemblyProductAttribute("HirestreamAI Backend")]
 [assembly: System.Reflection.AssemblyTitleAttribute("HirestreamAI Backend")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claim;
+using System.Security.Claims;
 using System.Text;
 using HirestreamAI_Backend.Data;
 using HirestreamAI_Backend.Models;
@@ -68,7 +68,12 @@ namespace HirestreamAI_Backend.Controllers
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
 
-            if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+            if (user == null)
+            {
+                return NotFound(new { message = "Your account is not registered. Please sign up." });
+            }
+
+            if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
             {
                 return Unauthorized(new { message = "Invalid email or password." });
             }

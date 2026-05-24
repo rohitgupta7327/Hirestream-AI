@@ -185,3 +185,4 @@ D:\Hirestream AI\HirestreamAI Backend\obj\Debug\net10.0\refint\HirestreamAI Back
 D:\Hirestream AI\HirestreamAI Backend\obj\Debug\net10.0\HirestreamAI Backend.pdb
 D:\Hirestream AI\HirestreamAI Backend\obj\Debug\net10.0\HirestreamAI Backend.genruntimeconfig.cache
 D:\Hirestream AI\HirestreamAI Backend\obj\Debug\net10.0\ref\HirestreamAI Backend.dll
+D:\Hirestream AI\HirestreamAI Backend\obj\Debug\net10.0\HirestreamAI Backend.sourcelink.json
