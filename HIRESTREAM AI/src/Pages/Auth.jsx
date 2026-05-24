@@ -69,6 +69,9 @@ export default function Auth() {
       }
       else {
         alert(data.message || "Invalid Credentials");
+        if (response.status === 404) {
+          setIsSignup(true);
+        }
       }
     } catch (error) {
       console.error("API Login Error:", error);

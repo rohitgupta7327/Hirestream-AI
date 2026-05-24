@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claim
+using System.Security.Claim;
 using System.Text;
 using HirestreamAI_Backend.Data;
 using HirestreamAI_Backend.Models;
