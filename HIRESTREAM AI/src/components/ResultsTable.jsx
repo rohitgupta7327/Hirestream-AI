@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function ResultsTable({ results, setSelectedCandidate }) {
+export default function ResultsTable({ results, setSelectedCandidate, rejectCandidate, acceptCandidate }) {
   return (
     <div className="mt-10 backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6">
       {/* Header */}
@@ -19,6 +19,7 @@ export default function ResultsTable({ results, setSelectedCandidate }) {
               <th className="p-4 font-medium">Candidate</th>
               <th className="p-4 font-medium">Match Score</th>
               <th className="p-4 font-medium">Insights</th>
+              <th className="p-4 font-medium">Action / Status</th>
             </tr>
           </thead>
 
@@ -81,6 +82,66 @@ export default function ResultsTable({ results, setSelectedCandidate }) {
                   <button className="bg-white/10 hover:bg-white/20 text-xs px-4 py-1.5 rounded-full transition">
                     View Details
                   </button>
+                </td>
+
+                {/* Accept & Reject Action */}
+                <td className="p-4 align-middle" onClick={(e) => e.stopPropagation()}>
+                  {c.emailStatus === "sending" && (
+                    <span className="flex items-center gap-1.5 text-xs text-blue-400 font-semibold bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20">
+                      <div className="w-2 h-2 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
+                      Sending Email...
+                    </span>
+                  )}
+                  {c.emailStatus === "accepted" && (
+                    <span className="flex items-center gap-1.5 text-xs text-green-400 font-semibold bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20" title="Acceptance email sent.">
+                      ✔ Accepted
+                    </span>
+                  )}
+                  {(c.emailStatus === "rejected" || c.emailStatus === "sent") && (
+                    <span className="flex items-center gap-1.5 text-xs text-red-400 font-semibold bg-red-500/10 px-3 py-1 rounded-full border border-red-500/20" title="Rejection email and career roadmap sent.">
+                      ✘ Rejected
+                    </span>
+                  )}
+                  {c.emailStatus === "failed" && (
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] text-red-400 italic block">Failed to send. Retry:</span>
+                      <div className="flex gap-1.5">
+                        <button 
+                          onClick={() => acceptCandidate(c)}
+                          className="px-2 py-1 text-[10px] font-bold text-green-400 bg-green-500/10 border border-green-500/20 rounded hover:bg-green-500 hover:text-white transition cursor-pointer"
+                        >
+                          Accept
+                        </button>
+                        <button 
+                          onClick={() => rejectCandidate(c)}
+                          className="px-2 py-1 text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-500/20 rounded hover:bg-red-500 hover:text-white transition cursor-pointer"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {!c.emailStatus && c.email && c.email !== "Not Found" && c.email !== "Not found" && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => acceptCandidate(c)}
+                        className="px-2.5 py-1.5 text-xs font-semibold text-green-400 bg-green-500/10 hover:bg-green-500 hover:text-white border border-green-500/20 rounded-lg transition-all duration-300 cursor-pointer"
+                        title="Send Acceptance Email"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        onClick={() => rejectCandidate(c)}
+                        className="px-2.5 py-1.5 text-xs font-semibold text-red-400 bg-red-500/10 hover:bg-red-500 hover:text-white border border-red-500/20 rounded-lg transition-all duration-300 cursor-pointer"
+                        title="Send Rejection Email & Career Roadmap PDF"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+                  {!c.emailStatus && (!c.email || c.email === "Not Found" || c.email === "Not found") && (
+                    <span className="text-xs text-gray-500 italic">No Email Found</span>
+                  )}
                 </td>
               </tr>
             ))}

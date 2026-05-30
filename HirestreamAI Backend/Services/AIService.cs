@@ -91,7 +91,13 @@ Resume:{resume}
             required = new[] { "matchPercentage", "skills", "missingSkills", "reason" }
         };
 
-        return await ExecuteGeminiRequestAsync(client, url, prompt, cacheKey, recruiterSchema);
+        var result = await ExecuteGeminiRequestAsync(client, url, prompt, cacheKey, recruiterSchema);
+        if (result == null)
+        {
+            Console.WriteLine("⚠️ Gemini API failed. Falling back to local keyword matching engine.");
+            return GenerateRecruiterFallback(jd, resume);
+        }
+        return result;
     }
 
     // ==========================================
@@ -208,13 +214,19 @@ Resume:{resume}
             required = new[] { "matchScore", "readinessStatus", "matchedSkills", "gapAnalysis", "keyStrengths", "resumeWeaknesses", "interviewQuestions", "actionPlan", "learningRoadmap", "recommendedProject" }
         };
 
-        return await ExecuteGeminiRequestAsync(client, url, prompt, cacheKey, studentSchema);
+        var result = await ExecuteGeminiRequestAsync(client, url, prompt, cacheKey, studentSchema);
+        if (result == null)
+        {
+            Console.WriteLine("⚠️ Gemini API failed. Falling back to local career analysis engine.");
+            return GenerateStudentFallback(jd, resume);
+        }
+        return result;
     }
 
     // ==========================================
     // HELPER: Shared execution logic
     // ==========================================
-    private async Task<string> ExecuteGeminiRequestAsync(HttpClient client, string url, string prompt, string cacheKey, object? responseSchema = null)
+    private async Task<string?> ExecuteGeminiRequestAsync(HttpClient client, string url, string prompt, string cacheKey, object? responseSchema = null)
     {
         var generationConfig = new Dictionary<string, object>
         {
@@ -249,15 +261,15 @@ Resume:{resume}
             if ((int)response.StatusCode == 429)
             {
                 Console.WriteLine("⚠️ Quota Exceeded (429). Please wait or check billing.");
-                return "{\"error\": \"Quota exceeded. Please try again later.\"}";
+                return null;
             }
 
             var rawResponse = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
             {
-                Console.WriteLine($"❌ API ERROR: {response.StatusCode}");
-                return "{}";
+                Console.WriteLine($"❌ API ERROR: {response.StatusCode}. Details: {rawResponse}");
+                return null;
             }
 
             using var doc = JsonDocument.Parse(rawResponse);
@@ -299,17 +311,138 @@ Resume:{resume}
                     }
                 }
             }
-            return "{}";
+            return null;
         }
         catch (HttpRequestException e)
         {
             Console.WriteLine($"❌ Request Error: {e.Message}");
-            return "{\"error\": \"Failed to connect to AI service.\"}";
+            return null;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"❌ PARSE ERROR: {ex.Message}");
-            return "{}";
+            return null;
         }
+    }
+
+    // ==========================================
+    // LOCAL RESILIENCY FALLBACKS
+    // ==========================================
+    private string GenerateRecruiterFallback(string jd, string resume)
+    {
+        var commonKeywords = new[] { 
+            "C#", ".NET", "ASP.NET", "React", "Angular", "Vue", "Javascript", "Typescript", 
+            "Python", "Java", "SQL", "SQL Server", "MySQL", "Postgres", "MongoDB", "NoSQL", 
+            "Git", "Docker", "Kubernetes", "AWS", "Azure", "GCP", "CI/CD", "Agile", "Scrum", 
+            "REST API", "GraphQL", "HTML", "CSS", "Tailwind", "Machine Learning", "AI", "Node.js"
+        };
+
+        var jdUpper = jd.ToUpper();
+        var resumeUpper = resume.ToUpper();
+
+        var jdKeywords = commonKeywords.Where(k => jdUpper.Contains(k.ToUpper())).ToList();
+        if (!jdKeywords.Any())
+        {
+            jdKeywords = new List<string> { "Software Development", "Programming" };
+        }
+
+        var matchedSkills = jdKeywords.Where(k => resumeUpper.Contains(k.ToUpper())).ToList();
+        var missingSkills = jdKeywords.Except(matchedSkills).ToList();
+
+        int score = (int)Math.Round((double)matchedSkills.Count * 100 / jdKeywords.Count);
+        score = Math.Clamp(score, 15, 95); // Ensure realistic range
+
+        var result = new
+        {
+            matchPercentage = score,
+            skills = matchedSkills,
+            missingSkills = missingSkills,
+            reason = $"Analyzed via local fallback engine. Found {matchedSkills.Count} matching skills. Missing core keywords: {string.Join(", ", missingSkills.Take(3))}."
+        };
+
+        return JsonSerializer.Serialize(result);
+    }
+
+    private string GenerateStudentFallback(string jd, string resume)
+    {
+        var commonKeywords = new[] { 
+            "C#", ".NET", "ASP.NET", "React", "Angular", "Vue", "Javascript", "Typescript", 
+            "Python", "Java", "SQL", "SQL Server", "MySQL", "Postgres", "MongoDB", "NoSQL", 
+            "Git", "Docker", "Kubernetes", "AWS", "Azure", "GCP", "CI/CD", "Agile", "Scrum", 
+            "REST API", "GraphQL", "HTML", "CSS", "Tailwind", "Machine Learning", "AI", "Node.js"
+        };
+
+        var jdUpper = jd.ToUpper();
+        var resumeUpper = resume.ToUpper();
+
+        var jdKeywords = commonKeywords.Where(k => jdUpper.Contains(k.ToUpper())).ToList();
+        if (!jdKeywords.Any())
+        {
+            jdKeywords = new List<string> { "Software Development", "Communication", "Problem Solving" };
+        }
+
+        var matchedSkills = jdKeywords.Where(k => resumeUpper.Contains(k.ToUpper())).ToList();
+        var missingSkills = jdKeywords.Except(matchedSkills).ToList();
+
+        int score = (int)Math.Round((double)matchedSkills.Count * 100 / jdKeywords.Count);
+        score = Math.Clamp(score, 20, 95);
+
+        string status = score > 80 ? "Ready" : (score > 50 ? "Needs Improvement" : "Not Ready");
+
+        var criticalMissing = missingSkills.Select(s => new
+        {
+            skillName = s,
+            reason = $"Required for standard industry roles matching '{s}' demands in JD.",
+            priority = "High"
+        }).ToList();
+
+        var strengths = matchedSkills.Take(3).Select(s => $"Strong foundation in {s}").ToList();
+        if (!strengths.Any()) strengths.Add("General technical aptitude");
+
+        var weaknesses = missingSkills.Take(2).Select(s => $"Lack of practical projects using {s}").ToList();
+        if (!weaknesses.Any()) weaknesses.Add("Limited specialized tech stack experience");
+
+        var interviewQuestions = missingSkills.Take(2).Select(s => $"Explain the core architecture of {s} and how you would integrate it into a project.").ToList();
+        interviewQuestions.Add("Explain a complex problem you solved in your past projects.");
+
+        var actionPlan = new List<object>
+        {
+            new { stepNumber = 1, task = $"Build a mini-project integrating {string.Join(", ", missingSkills.Take(2))}." },
+            new { stepNumber = 2, task = "Refactor existing projects to use standard architecture." },
+            new { stepNumber = 3, task = "Review conceptual questions on system design." },
+            new { stepNumber = 4, task = "Publish your code to GitHub and update your resume." }
+        };
+
+        var learningRoadmap = new
+        {
+            phase = "Skills Acquisition",
+            tasks = missingSkills.Select(s => $"Learn fundamentals of {s} and complete 2 practice exercises.").ToList()
+        };
+
+        var recommendedProject = new
+        {
+            title = $"Full-stack application using {string.Join(" and ", missingSkills.Take(2))}",
+            description = "A real-world project demonstrating database setup, REST APIs, and client interface.",
+            technologies = missingSkills.Take(3).ToList()
+        };
+
+        var result = new
+        {
+            matchScore = score,
+            readinessStatus = status,
+            matchedSkills = matchedSkills,
+            gapAnalysis = new
+            {
+                criticalMissingSkills = criticalMissing
+            },
+            keyStrengths = strengths,
+            resumeWeaknesses = weaknesses,
+            interviewQuestions = interviewQuestions,
+            actionPlan = actionPlan,
+            learningRoadmap = learningRoadmap,
+            recommendedProject = recommendedProject
+        };
+
+        return JsonSerializer.Serialize(result);
     }
 }

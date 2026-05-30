@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function UploadSection({ files, setFiles, handleDrop, handleFileUpload, jdText, setJdText, weights, setWeights, handleScan, loading }) {
+export default function UploadSection({ files, setFiles, handleDrop, handleFileUpload, jdText, setJdText, weights, setWeights, handleScan, loading, autoEmail, setAutoEmail, autoEmailThreshold, setAutoEmailThreshold }) {
   const hasFiles = files.length > 0;
 
   const handleRemoveFile = (e, indexToRemove) => {
@@ -183,6 +183,46 @@ export default function UploadSection({ files, setFiles, handleDrop, handleFileU
               className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
             />
             <p className="text-[10px] text-gray-500">Secondary skills like Git, Jira, Agile</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Automated Mailing Section */}
+      <div className="mt-6 border-t border-white/10 pt-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/5 rounded-xl p-6 border border-white/5">
+          <div className="space-y-1">
+            <h4 className="text-md font-semibold text-white flex items-center gap-2">
+              <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+              Fully Automated Rejection Mailing
+            </h4>
+            <p className="text-xs text-gray-400">
+              Candidates below the threshold score will automatically be emailed their AI roadmap on Scan.
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-300">
+              <input
+                type="checkbox"
+                checked={autoEmail}
+                onChange={(e) => setAutoEmail(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-primary focus:ring-primary focus:ring-offset-gray-800"
+              />
+              Enable Auto-Email
+            </label>
+            {autoEmail && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400">Score Threshold:</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={autoEmailThreshold}
+                  onChange={(e) => setAutoEmailThreshold(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))}
+                  className="w-16 p-1.5 text-center text-xs bg-white/5 border border-white/15 rounded-lg text-white font-bold focus:outline-none focus:border-primary/50"
+                />
+                <span className="text-xs text-gray-400">%</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

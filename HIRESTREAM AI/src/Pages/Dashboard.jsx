@@ -21,6 +21,23 @@ export default function HireStreamPremiumUI() {
   });
   const [history, setHistory] = useState([]);
   const [results, setResults] = useState([]);
+  
+  const [autoEmail, setAutoEmail] = useState(() => {
+    return localStorage.getItem('autoEmailRejections') === 'true';
+  });
+  const [autoEmailThreshold, setAutoEmailThreshold] = useState(() => {
+    const saved = localStorage.getItem('autoEmailThreshold');
+    return saved ? parseInt(saved) : 50;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('autoEmailRejections', autoEmail);
+  }, [autoEmail]);
+
+  useEffect(() => {
+    localStorage.setItem('autoEmailThreshold', autoEmailThreshold);
+  }, [autoEmailThreshold]);
+
 
   const fetchHistory = async () => {
     const token = localStorage.getItem("token");
@@ -81,6 +98,97 @@ export default function HireStreamPremiumUI() {
   const [loading, setLoading] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [rankChanges, setRankChanges] = useState({});
+
+  const handleRejectCandidate = async (candidate) => {
+    if (!candidate.email || candidate.email === "Not Found" || candidate.email === "Not found") {
+      alert("Candidate email not found.");
+      return;
+    }
+
+    // Update state to "sending"
+    setResults(prev => prev.map(r => r.id === candidate.id ? { ...r, emailStatus: "sending" } : r));
+    if (selectedCandidate && selectedCandidate.id === candidate.id) {
+      setSelectedCandidate(prev => ({ ...prev, emailStatus: "sending" }));
+    }
+
+    try {
+      const res = await fetch("http://localhost:5054/api/scan/reject-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          candidateName: candidate.name,
+          candidateEmail: candidate.email,
+          jobTitle: jdText || "Software Engineer",
+          matchPercentage: candidate.matchPercentage,
+          skills: candidate.skills,
+          missingSkills: candidate.missingSkills,
+          reason: candidate.reason
+        })
+      });
+
+      if (res.ok) {
+        setResults(prev => prev.map(r => r.id === candidate.id ? { ...r, emailStatus: "rejected" } : r));
+        if (selectedCandidate && selectedCandidate.id === candidate.id) {
+          setSelectedCandidate(prev => ({ ...prev, emailStatus: "rejected" }));
+        }
+      } else {
+        setResults(prev => prev.map(r => r.id === candidate.id ? { ...r, emailStatus: "failed" } : r));
+        if (selectedCandidate && selectedCandidate.id === candidate.id) {
+          setSelectedCandidate(prev => ({ ...prev, emailStatus: "failed" }));
+        }
+      }
+    } catch (err) {
+      setResults(prev => prev.map(r => r.id === candidate.id ? { ...r, emailStatus: "failed" } : r));
+      if (selectedCandidate && selectedCandidate.id === candidate.id) {
+        setSelectedCandidate(prev => ({ ...prev, emailStatus: "failed" }));
+      }
+      console.error("Error sending rejection email:", err);
+    }
+  };
+
+  const handleAcceptCandidate = async (candidate) => {
+    if (!candidate.email || candidate.email === "Not Found" || candidate.email === "Not found") {
+      alert("Candidate email not found.");
+      return;
+    }
+
+    // Update state to "sending"
+    setResults(prev => prev.map(r => r.id === candidate.id ? { ...r, emailStatus: "sending" } : r));
+    if (selectedCandidate && selectedCandidate.id === candidate.id) {
+      setSelectedCandidate(prev => ({ ...prev, emailStatus: "sending" }));
+    }
+
+    try {
+      const res = await fetch("http://localhost:5054/api/scan/accept-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          candidateName: candidate.name,
+          candidateEmail: candidate.email,
+          jobTitle: jdText || "Software Engineer"
+        })
+      });
+
+      if (res.ok) {
+        setResults(prev => prev.map(r => r.id === candidate.id ? { ...r, emailStatus: "accepted" } : r));
+        if (selectedCandidate && selectedCandidate.id === candidate.id) {
+          setSelectedCandidate(prev => ({ ...prev, emailStatus: "accepted" }));
+        }
+      } else {
+        setResults(prev => prev.map(r => r.id === candidate.id ? { ...r, emailStatus: "failed" } : r));
+        if (selectedCandidate && selectedCandidate.id === candidate.id) {
+          setSelectedCandidate(prev => ({ ...prev, emailStatus: "failed" }));
+        }
+      }
+    } catch (err) {
+      setResults(prev => prev.map(r => r.id === candidate.id ? { ...r, emailStatus: "failed" } : r));
+      if (selectedCandidate && selectedCandidate.id === candidate.id) {
+        setSelectedCandidate(prev => ({ ...prev, emailStatus: "failed" }));
+      }
+      console.error("Error sending acceptance email:", err);
+    }
+  };
+
 
   const handleFileUpload = (e) => {
     const newFiles = Array.from(e.target.files);
@@ -196,6 +304,15 @@ export default function HireStreamPremiumUI() {
         }
       }
 
+      // --- AUTO-EMAIL REJECTIONS ---
+      if (autoEmail && batchCandidates.length > 0) {
+        batchCandidates.forEach(c => {
+          if (c.matchPercentage < autoEmailThreshold && c.email && c.email !== "Not Found" && c.email !== "Not found") {
+            handleRejectCandidate(c);
+          }
+        });
+      }
+
       // --- SAVE BATCH TO DB ---
       if (batchCandidates.length > 0) {
         const token = localStorage.getItem("token");
@@ -295,6 +412,10 @@ export default function HireStreamPremiumUI() {
               setWeights={setWeights}
               handleScan={handleScan}
               loading={loading}
+              autoEmail={autoEmail}
+              setAutoEmail={setAutoEmail}
+              autoEmailThreshold={autoEmailThreshold}
+              setAutoEmailThreshold={setAutoEmailThreshold}
             />
           </section>
 
@@ -308,6 +429,8 @@ export default function HireStreamPremiumUI() {
                 <ResultsTable
                   results={results}
                   setSelectedCandidate={setSelectedCandidate}
+                  rejectCandidate={handleRejectCandidate}
+                  acceptCandidate={handleAcceptCandidate}
                 />
               </motion.section>
             )}
@@ -319,6 +442,8 @@ export default function HireStreamPremiumUI() {
               <CandidateModal
                 selectedCandidate={selectedCandidate}
                 setSelectedCandidate={setSelectedCandidate}
+                rejectCandidate={handleRejectCandidate}
+                acceptCandidate={handleAcceptCandidate}
               />
             )}
           </AnimatePresence>

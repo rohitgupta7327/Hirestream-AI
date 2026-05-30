@@ -10,7 +10,13 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
-*.local
+# Local configurations & env files
+*.local.json
+.env
+.env.local
+.env.*.local
+secrets.json
+
 
 # Editor directories and files
 .vscode/*
@@ -25,3 +31,9 @@ dist-ssr
 
 bin
 node_modules
+
+# Visual Studio / MSBuild files
+.vs/
+[Bb]in/
+[Oo]bj/
+

@@ -8,6 +8,10 @@ using ImageMagick;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Load local gitignored configuration file if it exists
+builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
+
+
 // 1. ENVIRONMENT & TOOLS SETUP
 // Keep your Ghostscript path for ResumeParser exactly as it is on your machine
 MagickNET.SetGhostscriptDirectory(@"C:\Program Files\gs\gs10.07.0\bin");
@@ -28,6 +32,9 @@ builder.Services.AddSwaggerGen();
 // 4. CUSTOM SERVICES FOR DI
 builder.Services.AddScoped<AIService>();
 builder.Services.AddScoped<ResumeParser>();
+builder.Services.AddTransient<IEmailService, EmailService>();
+builder.Services.AddTransient<IPdfRoadmapService, PdfRoadmapService>();
+
 
 // 5. JWT AUTHENTICATION SETUP
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "HireStreamAI_Permanent_Secret_Key_2026_Secure";
