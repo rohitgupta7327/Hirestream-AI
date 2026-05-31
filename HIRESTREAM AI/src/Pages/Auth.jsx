@@ -1,6 +1,7 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../config/api";
 
 export default function Auth() {
 
@@ -31,7 +32,7 @@ export default function Auth() {
     }
 
     try {
-      const response = await fetch("http://localhost:5054/api/auth/login", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -91,7 +92,7 @@ export default function Auth() {
 
     try {
       // 2. Call the .NET Signup API
-      const response = await fetch("http://localhost:5054/api/auth/signup", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

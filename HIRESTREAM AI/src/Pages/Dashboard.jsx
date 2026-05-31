@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import "../index.css";
 import { processRanking } from "../utils/rankingUtils";
+import { API_BASE_URL } from "../config/api";
 import UploadSection from "../components/UploadSection";
 import ResultsTable from "../components/ResultsTable";
 import CandidateModal from "../components/CandidateModal";
@@ -43,7 +44,7 @@ export default function HireStreamPremiumUI() {
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
-      const res = await fetch("http://localhost:5054/api/history", {
+      const res = await fetch(`${API_BASE_URL}/api/history`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) {
@@ -66,7 +67,7 @@ export default function HireStreamPremiumUI() {
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
-      const res = await fetch(`http://localhost:5054/api/history/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/history/${id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -112,7 +113,7 @@ export default function HireStreamPremiumUI() {
     }
 
     try {
-      const res = await fetch("http://localhost:5054/api/scan/reject-email", {
+      const res = await fetch(`${API_BASE_URL}/api/scan/reject-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -159,7 +160,7 @@ export default function HireStreamPremiumUI() {
     }
 
     try {
-      const res = await fetch("http://localhost:5054/api/scan/accept-email", {
+      const res = await fetch(`${API_BASE_URL}/api/scan/accept-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -227,7 +228,7 @@ export default function HireStreamPremiumUI() {
           formData.append("experienceWeight", weights.experience);
           formData.append("toolsWeight", weights.tools);
 
-          const res = await fetch("http://localhost:5054/api/scan", {
+          const res = await fetch(`${API_BASE_URL}/api/scan`, {
             method: "POST",
             body: formData,
           });
@@ -318,7 +319,7 @@ export default function HireStreamPremiumUI() {
         const token = localStorage.getItem("token");
         if (token) {
           try {
-            await fetch("http://localhost:5054/api/history", {
+            await fetch(`${API_BASE_URL}/api/history`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
