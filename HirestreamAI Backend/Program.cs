@@ -16,12 +16,12 @@ builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, relo
 // Keep your Ghostscript path for ResumeParser exactly as it is on your machine
 MagickNET.SetGhostscriptDirectory(@"C:\Program Files\gs\gs10.07.0\bin");
 
-// 2. DATABASE CONFIGURATION (Microsoft SQL Server LocalDB)
-var sqlConn = builder.Configuration.GetConnectionString("DefaultConnection")
-              ?? "Server=(localdb)\\mssqllocaldb;Database=HirestreamAI;Trusted_Connection=True;MultipleActiveResultSets=true";
+// 2. DATABASE CONFIGURATION (PostgreSQL)
+var pgConn = builder.Configuration.GetConnectionString("DefaultConnection")
+             ?? "Host=localhost;Database=HirestreamAI;Username=postgres;Password=postgres";
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(sqlConn));
+    options.UseNpgsql(pgConn));
 
 // 3. CORE SERVICES
 builder.Services.AddControllers();

@@ -19,18 +19,51 @@ namespace HirestreamAI_Backend.Services
             _configuration = configuration;
         }
 
+        private class SmtpSettings
+        {
+            public string Server { get; set; } = "localhost";
+            public int Port { get; set; } = 587;
+            public string SenderName { get; set; } = "HireStream AI";
+            public string SenderEmail { get; set; } = "noreply@hirestream.ai";
+            public string Username { get; set; } = "";
+            public string Password { get; set; } = "";
+            public bool EnableSsl { get; set; } = true;
+        }
+
+        private SmtpSettings GetSmtpSettings()
+        {
+            return new SmtpSettings
+            {
+                Server = _configuration["Smtp:Server"] ?? "localhost",
+                Port = int.TryParse(_configuration["Smtp:Port"], out var port) ? port : 587,
+                SenderName = _configuration["Smtp:SenderName"] ?? "HireStream AI",
+                SenderEmail = _configuration["Smtp:SenderEmail"] ?? "noreply@hirestream.ai",
+                Username = _configuration["Smtp:Username"] ?? "",
+                Password = _configuration["Smtp:Password"] ?? "",
+                EnableSsl = bool.TryParse(_configuration["Smtp:EnableSsl"], out var ssl) ? ssl : true
+            };
+        }
+
+        private async Task SendEmailMessageAsync(MimeMessage message, SmtpSettings settings)
+        {
+            using var client = new SmtpClient();
+            await client.ConnectAsync(settings.Server, settings.Port, settings.EnableSsl ? MailKit.Security.SecureSocketOptions.StartTlsWhenAvailable : MailKit.Security.SecureSocketOptions.None);
+            
+            if (!string.IsNullOrEmpty(settings.Username) && !string.IsNullOrEmpty(settings.Password))
+            {
+                await client.AuthenticateAsync(settings.Username, settings.Password);
+            }
+
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
+        }
+
         public async Task SendRejectionEmailAsync(string candidateName, string candidateEmail, string jobTitle, byte[] pdfAttachment, string attachmentFileName)
         {
-            var smtpServer = _configuration["Smtp:Server"] ?? "localhost";
-            var smtpPort = int.TryParse(_configuration["Smtp:Port"], out var port) ? port : 587;
-            var senderName = _configuration["Smtp:SenderName"] ?? "HireStream AI";
-            var senderEmail = _configuration["Smtp:SenderEmail"] ?? "noreply@hirestream.ai";
-            var username = _configuration["Smtp:Username"] ?? "";
-            var password = _configuration["Smtp:Password"] ?? "";
-            var enableSsl = bool.TryParse(_configuration["Smtp:EnableSsl"], out var ssl) ? ssl : true;
+            var settings = GetSmtpSettings();
 
             var message = new MimeMessage();
-            message.From.Add(new MailboxAddress(senderName, senderEmail));
+            message.From.Add(new MailboxAddress(settings.SenderName, settings.SenderEmail));
             message.To.Add(new MailboxAddress(candidateName, candidateEmail));
             message.Subject = $"Update on your application for {jobTitle} - HireStream AI Career Roadmap";
 
@@ -80,31 +113,15 @@ namespace HirestreamAI_Backend.Services
 
             message.Body = bodyBuilder.ToMessageBody();
 
-            using var client = new SmtpClient();
-            // In case of SSL vs TLS vs StartTLS settings
-            await client.ConnectAsync(smtpServer, smtpPort, enableSsl ? MailKit.Security.SecureSocketOptions.StartTlsWhenAvailable : MailKit.Security.SecureSocketOptions.None);
-            
-            if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
-            {
-                await client.AuthenticateAsync(username, password);
-            }
-
-            await client.SendAsync(message);
-            await client.DisconnectAsync(true);
+            await SendEmailMessageAsync(message, settings);
         }
 
         public async Task SendAcceptanceEmailAsync(string candidateName, string candidateEmail, string jobTitle)
         {
-            var smtpServer = _configuration["Smtp:Server"] ?? "localhost";
-            var smtpPort = int.TryParse(_configuration["Smtp:Port"], out var port) ? port : 587;
-            var senderName = _configuration["Smtp:SenderName"] ?? "HireStream AI";
-            var senderEmail = _configuration["Smtp:SenderEmail"] ?? "noreply@hirestream.ai";
-            var username = _configuration["Smtp:Username"] ?? "";
-            var password = _configuration["Smtp:Password"] ?? "";
-            var enableSsl = bool.TryParse(_configuration["Smtp:EnableSsl"], out var ssl) ? ssl : true;
+            var settings = GetSmtpSettings();
 
             var message = new MimeMessage();
-            message.From.Add(new MailboxAddress(senderName, senderEmail));
+            message.From.Add(new MailboxAddress(settings.SenderName, settings.SenderEmail));
             message.To.Add(new MailboxAddress(candidateName, candidateEmail));
             message.Subject = $"Good news regarding your application for {jobTitle} - HireStream AI";
 
@@ -145,16 +162,7 @@ namespace HirestreamAI_Backend.Services
 
             message.Body = bodyBuilder.ToMessageBody();
 
-            using var client = new SmtpClient();
-            await client.ConnectAsync(smtpServer, smtpPort, enableSsl ? MailKit.Security.SecureSocketOptions.StartTlsWhenAvailable : MailKit.Security.SecureSocketOptions.None);
-            
-            if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
-            {
-                await client.AuthenticateAsync(username, password);
-            }
-
-            await client.SendAsync(message);
-            await client.DisconnectAsync(true);
+            await SendEmailMessageAsync(message, settings);
         }
     }
 }
