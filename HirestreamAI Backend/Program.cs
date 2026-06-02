@@ -27,19 +27,23 @@ if (OperatingSystem.IsWindows())
 }
 
 // 2. DATABASE CONFIGURATION (PostgreSQL / Railway compatible)
+// 2. DATABASE CONFIGURATION (Railway PostgreSQL)
+
+// =======================
+// DATABASE CONFIGURATION
+// =======================
+
 var connectionString =
-    builder.Configuration.GetConnectionString("DefaultConnection");
+    Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+    ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
-var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-if (!string.IsNullOrEmpty(databaseUrl))
+if (string.IsNullOrWhiteSpace(connectionString))
 {
-    connectionString = ConvertDatabaseUrl(databaseUrl);
+    throw new InvalidOperationException(
+        "ConnectionStrings__DefaultConnection not found.");
 }
 
-if (string.IsNullOrEmpty(connectionString))
-{
-    throw new InvalidOperationException("No database connection string found. Set ConnectionStrings:DefaultConnection or DATABASE_URL.");
-}
+Console.WriteLine("Database connection string loaded.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -117,16 +121,78 @@ app.Run();
 
 static string ConvertDatabaseUrl(string databaseUrl)
 {
-    var uri = new Uri(databaseUrl);
-    var userInfo = uri.UserInfo.Split(':', 2);
-    var builder = new NpgsqlConnectionStringBuilder
+    if (string.IsNullOrWhiteSpace(databaseUrl))
     {
-        Host = uri.Host,
-        Port = uri.Port,
-        Username = userInfo.Length > 0 ? userInfo[0] : string.Empty,
-        Password = userInfo.Length > 1 ? userInfo[1] : string.Empty,
-        Database = uri.AbsolutePath.TrimStart('/'),
-        SslMode = SslMode.Prefer
+        throw new ArgumentException("DATABASE_URL is empty.", nameof(databaseUrl));
+    }
+
+    databaseUrl = databaseUrl.Trim();
+    if ((databaseUrl.StartsWith('"') && databaseUrl.EndsWith('"')) ||
+        (databaseUrl.StartsWith('\'') && databaseUrl.EndsWith('\'')))
+    {
+        databaseUrl = databaseUrl[1..^1].Trim();
+    }
+
+    var lower = databaseUrl.ToLowerInvariant();
+    if (lower.StartsWith("postgres://") || lower.StartsWith("postgresql://"))
+    {
+        if (!Uri.TryCreate(databaseUrl, UriKind.Absolute, out var uri))
+        {
+            throw new ArgumentException($"DATABASE_URL is not a valid URI: {databaseUrl}");
+        }
+
+        var userInfo = uri.UserInfo.Split(':', 2);
+        var builder = new NpgsqlConnectionStringBuilder
+        {
+            Host = uri.Host,
+            Port = uri.Port > 0 ? uri.Port : 5432,
+            Username = userInfo.Length > 0 ? Uri.UnescapeDataString(userInfo[0]) : string.Empty,
+            Password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : string.Empty,
+            Database = uri.AbsolutePath.TrimStart('/'),
+            SslMode = SslMode.Require
+        };
+
+        var query = uri.Query.TrimStart('?');
+        if (!string.IsNullOrEmpty(query))
+        {
+            foreach (var part in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var kv = part.Split('=', 2);
+                if (kv.Length != 2) continue;
+
+                var key = kv[0].ToLowerInvariant();
+                var value = Uri.UnescapeDataString(kv[1]);
+                switch (key)
+                {
+                    case "sslmode":
+                        builder.SslMode = ParseSslMode(value);
+                        break;
+                    case "trustservercertificate":
+                        builder.TrustServerCertificate = bool.TryParse(value, out var b) && b;
+                        break;
+                    default:
+                        builder[key] = value;
+                        break;
+                }
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    return databaseUrl;
+}
+
+static SslMode ParseSslMode(string sslModeValue)
+{
+    return sslModeValue?.ToLowerInvariant() switch
+    {
+        "disable" => SslMode.Disable,
+        "allow" => SslMode.Allow,
+        "prefer" => SslMode.Prefer,
+        "require" => SslMode.Require,
+        "verify-ca" => SslMode.VerifyCA,
+        "verify-full" => SslMode.VerifyFull,
+        _ => SslMode.Require,
     };
-    return builder.ToString();
 }
