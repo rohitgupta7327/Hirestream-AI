@@ -19,11 +19,16 @@ if (!string.IsNullOrEmpty(port))
 }
 
 // 1. ENVIRONMENT & TOOLS SETUP
-// Keep your Ghostscript path for ResumeParser exactly as it is on your machine
+// Set Ghostscript path based on OS
 if (OperatingSystem.IsWindows())
 {
     MagickNET.SetGhostscriptDirectory(
         @"C:\Program Files\gs\gs10.07.0\bin");
+}
+else if (OperatingSystem.IsLinux())
+{
+    // Railway (Linux) - Ghostscript is typically in /usr/bin
+    MagickNET.SetGhostscriptDirectory("/usr");
 }
 
 // 2. DATABASE CONFIGURATION (PostgreSQL / Railway compatible)
