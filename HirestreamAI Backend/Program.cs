@@ -48,6 +48,8 @@ if (string.IsNullOrWhiteSpace(connectionString))
         "ConnectionStrings__DefaultConnection not found.");
 }
 
+connectionString = ConvertDatabaseUrl(connectionString);
+
 Console.WriteLine("Database connection string loaded.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
