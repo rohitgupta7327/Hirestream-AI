@@ -17,11 +17,12 @@ builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, relo
 MagickNET.SetGhostscriptDirectory(@"C:\Program Files\gs\gs10.07.0\bin");
 
 // 2. DATABASE CONFIGURATION (Microsoft SQL Server LocalDB)
-var sqlConn = builder.Configuration.GetConnectionString("DefaultConnection")
-              ?? "Server=(localdb)\\mssqllocaldb;Database=HirestreamAI;Trusted_Connection=True;MultipleActiveResultSets=true";
+var connectionString =
+    builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? builder.Configuration["postgresql://postgres:BmasLmAIUnOdyUyiczFPGvBaJwkcfxbB@acela.proxy.rlwy.net:44332/railway"];
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(sqlConn));
+    options.UseNpgsql(connectionString));
 
 // 3. CORE SERVICES
 builder.Services.AddControllers();
