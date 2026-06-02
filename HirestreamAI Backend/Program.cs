@@ -48,6 +48,9 @@ if (string.IsNullOrWhiteSpace(connectionString))
         "ConnectionStrings__DefaultConnection not found.");
 }
 
+// Convert PostgreSQL URI format to Npgsql format if needed (for Railway)
+connectionString = ConvertDatabaseUrl(connectionString);
+
 Console.WriteLine("Database connection string loaded.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
