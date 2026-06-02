@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { API_URL } from "../config";
 import "../index.css";
 import { processRanking } from "../utils/rankingUtils";
 import UploadSection from "../components/UploadSection";
@@ -43,7 +44,7 @@ export default function HireStreamPremiumUI() {
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
-      const res = await fetch("http://localhost:5054/api/history", {
+      const res = await fetch(`${API_URL}/api/history`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) {
@@ -66,7 +67,7 @@ export default function HireStreamPremiumUI() {
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
-      const res = await fetch(`http://localhost:5054/api/history/${id}`, {
+      const res = await fetch(`${API_URL}/api/history/${id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });

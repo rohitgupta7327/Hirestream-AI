@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '../Layout/Navbar';
 import StudentComponent from '../components/Studentcomponent.jsx';
 import Sidebar from '../components/Sidebar';
+import { API_URL } from '../config';
 
 const StudentDashboard = () => {
   const [files, setFiles] = useState([]);
@@ -15,7 +16,7 @@ const StudentDashboard = () => {
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
-      const res = await fetch("http://localhost:5054/api/history", {
+      const res = await fetch(`${API_URL}/api/history`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) {
@@ -35,7 +36,7 @@ const StudentDashboard = () => {
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
-      const res = await fetch(`http://localhost:5054/api/history/${id}`, {
+      const res = await fetch(`${API_URL}/api/history/${id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -90,7 +91,7 @@ const StudentDashboard = () => {
     formData.append("jd", jdText);
 
     try {
-      const res = await fetch("http://localhost:5054/api/scan/student", {
+      const res = await fetch(`${API_URL}/api/scan/student`, {
         method: "POST",
         body: formData,
       });
