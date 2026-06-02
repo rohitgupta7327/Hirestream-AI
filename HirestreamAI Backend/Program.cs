@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Npgsql;
 using System.Text;
 using HirestreamAI_Backend.Data;
 using HirestreamAI_Backend.Services;
@@ -11,6 +12,11 @@ var builder = WebApplication.CreateBuilder(args);
 // Load local gitignored configuration file if it exists
 builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
 
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(port))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+}
 
 // 1. ENVIRONMENT & TOOLS SETUP
 // Keep your Ghostscript path for ResumeParser exactly as it is on your machine
@@ -20,10 +26,21 @@ if (OperatingSystem.IsWindows())
         @"C:\Program Files\gs\gs10.07.0\bin");
 }
 
-// 2. DATABASE CONFIGURATION (Microsoft SQL Server LocalDB)
+// 2. DATABASE CONFIGURATION (PostgreSQL / Railway compatible)
 var connectionString =
     builder.Configuration.GetConnectionString("DefaultConnection")
     ?? builder.Configuration["ConnectionStrings__DefaultConnection"];
+
+var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+if (!string.IsNullOrEmpty(databaseUrl))
+{
+    connectionString = ConvertDatabaseUrl(databaseUrl);
+}
+
+if (string.IsNullOrEmpty(connectionString))
+{
+    throw new InvalidOperationException("No database connection string found. Set ConnectionStrings:DefaultConnection or DATABASE_URL.");
+}
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -93,15 +110,24 @@ using (var scope = app.Services.CreateScope())
     db.Database.EnsureCreated(); // Creates the DB and Tables if they don't exist
 }
 
-var port = Environment.GetEnvironmentVariable("PORT");
-
-if (!string.IsNullOrEmpty(port))
-{
-    app.Urls.Add($"http://0.0.0.0:{port}");
-}
-
 Console.WriteLine("Application Starting...");
 Console.WriteLine($"Environment: {app.Environment.EnvironmentName}");
 Console.WriteLine($"Database: {connectionString}");
 // 9. START THE SERVER
 app.Run();
+
+static string ConvertDatabaseUrl(string databaseUrl)
+{
+    var uri = new Uri(databaseUrl);
+    var userInfo = uri.UserInfo.Split(':', 2);
+    var builder = new NpgsqlConnectionStringBuilder
+    {
+        Host = uri.Host,
+        Port = uri.Port,
+        Username = userInfo.Length > 0 ? userInfo[0] : string.Empty,
+        Password = userInfo.Length > 1 ? userInfo[1] : string.Empty,
+        Database = uri.AbsolutePath.TrimStart('/'),
+        SslMode = SslMode.Prefer
+    };
+    return builder.ToString();
+}
