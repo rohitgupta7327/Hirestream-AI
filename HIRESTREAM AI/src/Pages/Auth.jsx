@@ -76,7 +76,7 @@ export default function Auth() {
       }
     } catch (error) {
       console.error("API Login Error:", error);
-      alert("Connection Error: Ensure your .NET Backend is running on port 5054.");
+      alert(`Connection Error: Cannot reach backend at ${API_URL}.`);
     }
   };
 
@@ -116,7 +116,7 @@ export default function Auth() {
       }
     } catch (error) {
       console.error("Signup Connection Error:", error);
-      alert("Cannot connect to backend. Please ensure your .NET project is running on port 5054.");
+      alert(`Connection Error: Cannot reach backend at ${API_URL}.`);
     }
   };
 

@@ -14,12 +14,16 @@ builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, relo
 
 // 1. ENVIRONMENT & TOOLS SETUP
 // Keep your Ghostscript path for ResumeParser exactly as it is on your machine
-MagickNET.SetGhostscriptDirectory(@"C:\Program Files\gs\gs10.07.0\bin");
+if (OperatingSystem.IsWindows())
+{
+    MagickNET.SetGhostscriptDirectory(
+        @"C:\Program Files\gs\gs10.07.0\bin");
+}
 
 // 2. DATABASE CONFIGURATION (Microsoft SQL Server LocalDB)
 var connectionString =
     builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? builder.Configuration["postgresql://postgres:BmasLmAIUnOdyUyiczFPGvBaJwkcfxbB@acela.proxy.rlwy.net:44332/railway"];
+    ?? builder.Configuration["ConnectionStrings__DefaultConnection"];
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -70,12 +74,8 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // 7. HTTP PIPELINE CONFIGURATION
-if (app.Environment.IsDevelopment())
-{
-    app.UseDeveloperExceptionPage();
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 
 // Order is critical here: Routing -> Auth -> Endpoints
@@ -93,5 +93,15 @@ using (var scope = app.Services.CreateScope())
     db.Database.EnsureCreated(); // Creates the DB and Tables if they don't exist
 }
 
+var port = Environment.GetEnvironmentVariable("PORT");
+
+if (!string.IsNullOrEmpty(port))
+{
+    app.Urls.Add($"http://0.0.0.0:{port}");
+}
+
+Console.WriteLine("Application Starting...");
+Console.WriteLine($"Environment: {app.Environment.EnvironmentName}");
+Console.WriteLine($"Database: {connectionString}");
 // 9. START THE SERVER
 app.Run();
