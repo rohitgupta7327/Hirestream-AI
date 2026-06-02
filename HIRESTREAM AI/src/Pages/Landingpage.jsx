@@ -27,12 +27,12 @@ export default function LandingPage() {
 
     if (isLoggedIn && token && role) {
       if (role === "recruiter") {
-        window.location.href = "/dashboard";
+        navigate("/dashboard");
       } else {
-        window.location.href = "/student-dashboard";
+        navigate("/student-dashboard");
       }
     } else {
-      window.location.href = "/auth";
+      navigate("/auth");
     }
   };
 
@@ -62,7 +62,7 @@ export default function LandingPage() {
           </button>
         ) : (
           <button 
-            onClick={() => window.location.href = "/auth"} 
+            onClick={() => navigate("/auth")} 
             className="text-sm font-semibold bg-white/5 hover:bg-white/10 border border-white/10 px-5 py-2.5 rounded-lg transition-all"
           >
             Sign In
