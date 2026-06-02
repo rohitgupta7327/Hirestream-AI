@@ -28,8 +28,7 @@ if (OperatingSystem.IsWindows())
 
 // 2. DATABASE CONFIGURATION (PostgreSQL / Railway compatible)
 var connectionString =
-    builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? builder.Configuration["ConnectionStrings__DefaultConnection"];
+    builder.Configuration.GetConnectionString("DefaultConnection");
 
 var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 if (!string.IsNullOrEmpty(databaseUrl))
