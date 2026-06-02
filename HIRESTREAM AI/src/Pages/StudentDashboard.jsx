@@ -147,7 +147,7 @@ const StudentDashboard = () => {
       if (token) {
         normalized.forEach(async (c) => {
           try {
-            await fetch("http://localhost:5054/api/history", {
+            await fetch(`${API_URL}/api/history`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",

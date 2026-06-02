@@ -113,7 +113,7 @@ export default function HireStreamPremiumUI() {
     }
 
     try {
-      const res = await fetch("http://localhost:5054/api/scan/reject-email", {
+      const res = await fetch(`${API_URL}/api/scan/reject-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -160,7 +160,7 @@ export default function HireStreamPremiumUI() {
     }
 
     try {
-      const res = await fetch("http://localhost:5054/api/scan/accept-email", {
+      const res = await fetch(`${API_URL}/api/scan/accept-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -228,7 +228,7 @@ export default function HireStreamPremiumUI() {
           formData.append("experienceWeight", weights.experience);
           formData.append("toolsWeight", weights.tools);
 
-          const res = await fetch("http://localhost:5054/api/scan", {
+          const res = await fetch(`${API_URL}/api/scan`, {
             method: "POST",
             body: formData,
           });
@@ -319,7 +319,7 @@ export default function HireStreamPremiumUI() {
         const token = localStorage.getItem("token");
         if (token) {
           try {
-            await fetch("http://localhost:5054/api/history", {
+            await fetch(`${API_URL}/api/history`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
