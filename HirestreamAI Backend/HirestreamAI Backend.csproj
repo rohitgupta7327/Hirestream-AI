@@ -7,6 +7,7 @@
 		<RootNamespace>HirestreamAI_Backend</RootNamespace>
 		<AssemblyName>HirestreamAI</AssemblyName>
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+		<CopyAllFilesToOutputDirectoryForPackage>true</CopyAllFilesToOutputDirectoryForPackage>
 		<UserSecretsId>03e50ed1-144b-4839-aeb8-0d2fdb23ce9c</UserSecretsId>
 	</PropertyGroup>
 
