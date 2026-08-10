@@ -26,75 +26,97 @@ namespace HirestreamAI_Backend.Controllers
         [HttpPost("signup")]
         public async Task<IActionResult> Signup([FromBody] SignupDto dto)
         {
-            if (dto == null || string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))
+            try
             {
-                return BadRequest(new { message = "Email and Password are required fields." });
-            }
-
-            var userRole = (dto.Role ?? "student").Trim().ToLower();
-            var orgName = (dto.Organization ?? "").Trim();
-            if (string.IsNullOrWhiteSpace(orgName))
-            {
-                orgName = userRole == "recruiter" ? "Company Name Required" : "General";
-            }
-
-            // 1. One Email = One Role Policy
-            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
-
-            if (existingUser != null)
-            {
-                return BadRequest(new
+                if (dto == null || string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))
                 {
-                    message = $"This email is already registered as a {existingUser.Role}. Please log in or use a different email."
-                });
+                    return BadRequest(new { message = "Email and Password are required fields." });
+                }
+
+                var userRole = (dto.Role ?? "student").Trim().ToLower();
+                var orgName = (dto.Organization ?? "").Trim();
+                if (string.IsNullOrWhiteSpace(orgName))
+                {
+                    orgName = userRole == "recruiter" ? "Company Name Required" : "General";
+                }
+
+                var cleanEmail = dto.Email.Trim().ToLower();
+                var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == cleanEmail);
+
+                if (existingUser != null)
+                {
+                    return BadRequest(new
+                    {
+                        message = $"This email is already registered as a {existingUser.Role}. Please log in or use a different email."
+                    });
+                }
+
+                string hashedPw = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+
+                var newUser = new User
+                {
+                    FullName = string.IsNullOrWhiteSpace(dto.FullName) ? "User" : dto.FullName.Trim(),
+                    Email = cleanEmail,
+                    PasswordHash = hashedPw,
+                    Role = userRole,
+                    Organization = orgName,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Users.Add(newUser);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "User registered successfully!" });
             }
-
-            // 2. Hash Password
-            string hashedPw = BCrypt.Net.BCrypt.HashPassword(dto.Password);
-
-            // 3. Create User with Organization (Company/College)
-            var newUser = new User
+            catch (Exception ex)
             {
-                FullName = string.IsNullOrWhiteSpace(dto.FullName) ? "User" : dto.FullName.Trim(),
-                Email = dto.Email.Trim(),
-                PasswordHash = hashedPw,
-                Role = userRole,
-                Organization = orgName,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _context.Users.Add(newUser);
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "User registered successfully!" });
+                Console.WriteLine($"[SIGNUP ERROR] {ex}");
+                var msg = ex.InnerException != null ? $"{ex.Message} ({ex.InnerException.Message})" : ex.Message;
+                return StatusCode(500, new { message = $"Signup Database Error: {msg}" });
+            }
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
-
-            if (user == null)
+            try
             {
-                return NotFound(new { message = "Your account is not registered. Please sign up." });
+                if (dto == null || string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))
+                {
+                    return BadRequest(new { message = "Email and Password are required." });
+                }
+
+                var cleanEmail = dto.Email.Trim().ToLower();
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == cleanEmail);
+
+                if (user == null)
+                {
+                    return NotFound(new { message = "Your account is not registered. Please sign up." });
+                }
+
+                if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+                {
+                    return Unauthorized(new { message = "Invalid email or password." });
+                }
+
+                // Generate the token
+                var token = GenerateJwtToken(user);
+
+                return Ok(new
+                {
+                    token = token,
+                    role = user.Role,
+                    fullName = user.FullName,
+                    organization = user.Organization,
+                    message = "Login successful"
+                });
             }
-
-            if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+            catch (Exception ex)
             {
-                return Unauthorized(new { message = "Invalid email or password." });
+                Console.WriteLine($"[LOGIN ERROR] {ex}");
+                var msg = ex.InnerException != null ? $"{ex.Message} ({ex.InnerException.Message})" : ex.Message;
+                return StatusCode(500, new { message = $"Login Database Error: {msg}" });
             }
-
-            // Generate the token
-            var token = GenerateJwtToken(user);
-
-            return Ok(new
-            {
-                token = token,
-                role = user.Role,
-                fullName = user.FullName,
-                organization = user.Organization,
-                message = "Login successful"
-            });
         }
 
         // This method must be INSIDE the AuthController class but OUTSIDE other methods
