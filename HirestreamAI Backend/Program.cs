@@ -18,17 +18,10 @@ if (!string.IsNullOrEmpty(port))
 {
     builder.WebHost.UseUrls($"http://*:{port}");
 }
-// 1. SAFELY INITIALIZE GHOSTSCRIPT
+// 1. SAFELY INITIALIZE GHOSTSCRIPT (ISOLATED TO PREVENT JIT STARTUP CRASH)
 try
 {
-    if (OperatingSystem.IsWindows())
-    {
-        MagickNET.SetGhostscriptDirectory(@"C:\Program Files\gs\gs10.07.0\bin");
-    }
-    else if (OperatingSystem.IsLinux())
-    {
-        MagickNET.SetGhostscriptDirectory("/usr");
-    }
+    InitGhostscript();
 }
 catch (Exception ex)
 {
@@ -207,4 +200,24 @@ static string ConvertDatabaseUrl(string databaseUrl)
     }
 
     return databaseUrl;
+}
+
+[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+static void InitGhostscript()
+{
+    try
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            MagickNET.SetGhostscriptDirectory(@"C:\Program Files\gs\gs10.07.0\bin");
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            MagickNET.SetGhostscriptDirectory("/usr");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Ghostscript setup warning: {ex.Message}");
+    }
 }
