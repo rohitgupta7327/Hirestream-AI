@@ -15,11 +15,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Load local gitignored configuration file if it exists
 builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
 
-var port = Environment.GetEnvironmentVariable("PORT");
-if (!string.IsNullOrEmpty(port))
-{
-    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
-}
+// Fallback to port 8080 if Railway doesn't explicitly inject a PORT variable
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 // 1. ENVIRONMENT & TOOLS SETUP
 // Set Ghostscript path based on OS
