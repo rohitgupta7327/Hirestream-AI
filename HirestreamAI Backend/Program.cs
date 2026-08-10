@@ -117,8 +117,10 @@ app.MapControllers();
 // 8. DATABASE AUTO-CREATION (Safe Development Mode)
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated(); // Creates the DB and Tables if they don't exist
+    var dbContext = scope.ServiceProvider.GetRequiredService();
+
+    // Wait for connection / apply pending migrations cleanly
+    await dbContext.Database.MigrateAsync();
 }
 
 Console.WriteLine("Application Starting...");
