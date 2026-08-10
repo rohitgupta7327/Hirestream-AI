@@ -12,9 +12,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Load local gitignored configuration file if it exists
 builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
 
-// Fallback to port 8080 if Railway doesn't explicitly inject a PORT variable
-
-
+// Bind to dynamic PORT injected by Railway or cloud hosts
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(port))
+{
+    builder.WebHost.UseUrls($"http://*:{port}");
+}
 // 1. SAFELY INITIALIZE GHOSTSCRIPT
 try
 {
