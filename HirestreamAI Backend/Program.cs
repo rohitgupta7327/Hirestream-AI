@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using System.Text;
-using HirestreamAI_Backend.Data;
+
 using HirestreamAI_Backend.Services;
 using ImageMagick;
+
+using Microsoft.EntityFrameworkCore;
+using HirestreamAI_Backend.Data;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -114,13 +117,13 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+
 // 8. DATABASE AUTO-CREATION (Safe Development Mode)
 using (var scope = app.Services.CreateScope())
 {
-    // Ensure <ApplicationDbContext> is explicitly inside the angle brackets
-    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    // Change ApplicationDbContext -> AppDbContext
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-    // Wait for connection / apply pending migrations cleanly
     await dbContext.Database.MigrateAsync();
 }
 
