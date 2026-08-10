@@ -20,11 +20,13 @@ namespace HirestreamAI_Backend.Data
         {
             var config = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json")
+                .AddJsonFile("appsettings.json", optional: true)
+                .AddJsonFile("appsettings.local.json", optional: true)
                 .Build();
 
+            var connStr = config.GetConnectionString("DefaultConnection") ?? "";
             var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
-            optionsBuilder.UseSqlServer(config.GetConnectionString("DefaultConnection"));
+            optionsBuilder.UseNpgsql(connStr);
 
             return new AppDbContext(optionsBuilder.Options);
         }

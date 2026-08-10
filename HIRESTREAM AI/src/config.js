@@ -1,2 +1,3 @@
 // API Configuration
-export const API_URL = 'https://hirestream-ai-production.up.railway.app';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5054';
+

@@ -41,7 +41,12 @@ export default function Auth() {
         })
       });
 
-      const data = await response.json();
+      let data = {};
+      try {
+        data = await response.json();
+      } catch {
+        // Ignore JSON parse error for 500 responses
+      }
 
       if (response.ok) {
         // 2. Role Verification: Compare UI selection with Database record
@@ -69,14 +74,14 @@ export default function Auth() {
         navigate(targetPath, { replace: true });
       }
       else {
-        alert(data.message || "Invalid Credentials");
+        alert(data.message || `Server Error (${response.status}): Failed to log in.`);
         if (response.status === 404) {
           setIsSignup(true);
         }
       }
     } catch (error) {
       console.error("API Login Error:", error);
-      alert(`Connection Error: Cannot reach backend at ${API_URL}.`);
+      alert(`Network Error: Cannot reach backend at ${API_URL}.`);
     }
   };
 
@@ -85,8 +90,8 @@ export default function Auth() {
 
     const org = role === "recruiter" ? form.company : form.college;
     // 1. Validate required fields
-    if (!form.email || !form.password || !form.name || form.role) {
-      alert("Please fill in all required fields (Name, Email,Role and Password).");
+    if (!form.email || !form.password || !form.name) {
+      alert("Please fill in all required fields (Name, Email, Role and Password).");
       return;
     }
 
@@ -104,19 +109,24 @@ export default function Auth() {
         })
       });
 
-      const data = await response.json();
+      let data = {};
+      try {
+        data = await response.json();
+      } catch {
+        // Ignore JSON parse error for 500 responses
+      }
 
       if (response.ok) {
-        alert("Account successfully created in SQL Server! You can now log in.");
+        alert("Account successfully created! You can now log in.");
         // Switch to the Login view
         setIsSignup(false);
       } else {
         // Handle backend errors (e.g., "Email is already registered.")
-        alert(data.message || "Signup failed. Please try again.");
+        alert(data.message || `Server Error (${response.status}): Signup failed.`);
       }
     } catch (error) {
       console.error("Signup Connection Error:", error);
-      alert(`Connection Error: Cannot reach backend at ${API_URL}.`);
+      alert(`Network Error: Cannot reach backend at ${API_URL}.`);
     }
   };
 
