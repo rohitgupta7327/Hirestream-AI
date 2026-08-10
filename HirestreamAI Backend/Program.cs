@@ -31,15 +31,18 @@ catch (Exception ex)
 // 2. DATABASE CONFIGURATION
 var connectionString =
     Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+    ?? Environment.GetEnvironmentVariable("DATABASE_URL")
+    ?? Environment.GetEnvironmentVariable("DATABASE_PRIVATE_URL")
+    ?? Environment.GetEnvironmentVariable("DATABASE_PUBLIC_URL")
     ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
 if (string.IsNullOrWhiteSpace(connectionString))
 {
-    throw new InvalidOperationException("ConnectionStrings__DefaultConnection not found.");
+    throw new InvalidOperationException("Database connection string not found.");
 }
 
 connectionString = ConvertDatabaseUrl(connectionString);
-Console.WriteLine("Database connection string loaded.");
+Console.WriteLine($"Database connection string loaded: {connectionString.Split(';')[0]}");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -90,12 +93,38 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // 7. HTTP PIPELINE CONFIGURATION (CRITICAL MIDDLEWARE ORDER)
-app.UseSwagger();
-app.UseSwaggerUI();
-
-// CORS MUST BE BEFORE USEROUTING
 app.UseCors("AllowAll");
 
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+
+        // Ensure CORS headers are attached to 500 exception responses
+        context.Response.Headers["Access-Control-Allow-Origin"] = "*";
+        context.Response.Headers["Access-Control-Allow-Methods"] = "*";
+        context.Response.Headers["Access-Control-Allow-Headers"] = "*";
+
+        var exceptionHandlerPathFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
+        var exception = exceptionHandlerPathFeature?.Error;
+
+        var errorMessage = exception?.Message ?? "An unexpected server error occurred.";
+        if (exception?.InnerException != null)
+        {
+            errorMessage += $" ({exception.InnerException.Message})";
+        }
+
+        Console.WriteLine($"[GLOBAL EXCEPTION HANDLER] 500 Error: {exception}");
+
+        var result = System.Text.Json.JsonSerializer.Serialize(new { message = errorMessage });
+        await context.Response.WriteAsync(result);
+    });
+});
+
+app.UseSwagger();
+app.UseSwaggerUI();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
