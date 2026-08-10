@@ -117,7 +117,8 @@ app.MapControllers();
 // 8. DATABASE AUTO-CREATION (Safe Development Mode)
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService();
+    
+var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
     // Wait for connection / apply pending migrations cleanly
     await dbContext.Database.MigrateAsync();
@@ -172,14 +173,24 @@ static string ConvertDatabaseUrl(string databaseUrl)
 
                 var key = kv[0].ToLowerInvariant();
                 var value = Uri.UnescapeDataString(kv[1]);
-                switch (key)
+                switch (key.ToLowerInvariant())
                 {
                     case "sslmode":
-                        builder.SslMode = ParseSslMode(value);
+                        if (Enum.TryParse<SslMode>(value, ignoreCase: true, out var sslMode))
+                        {
+                            builder.SslMode = sslMode;
+                        }
                         break;
+
                     case "trustservercertificate":
-                        builder.TrustServerCertificate = bool.TryParse(value, out var b) && b;
+                        // TrustServerCertificate is obsolete in Npgsql.
+                        // If "true", map to Require (or Disable certificate chain validation if using older versions):
+                        if (bool.TryParse(value, out var trust) && trust)
+                        {
+                            builder.SslMode = SslMode.Require;
+                        }
                         break;
+
                     default:
                         builder[key] = value;
                         break;
