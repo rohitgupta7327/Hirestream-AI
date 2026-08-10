@@ -173,6 +173,8 @@ static string ConvertDatabaseUrl(string databaseUrl)
         databaseUrl = databaseUrl[1..^1].Trim();
     }
 
+    NpgsqlConnectionStringBuilder builder;
+
     var lower = databaseUrl.ToLowerInvariant();
     if (lower.StartsWith("postgres://") || lower.StartsWith("postgresql://"))
     {
@@ -182,15 +184,19 @@ static string ConvertDatabaseUrl(string databaseUrl)
         }
 
         var userInfo = uri.UserInfo.Split(':', 2);
-        var builder = new NpgsqlConnectionStringBuilder
+        builder = new NpgsqlConnectionStringBuilder
         {
             Host = uri.Host,
             Port = uri.Port > 0 ? uri.Port : 5432,
             Username = userInfo.Length > 0 ? Uri.UnescapeDataString(userInfo[0]) : string.Empty,
             Password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : string.Empty,
             Database = uri.AbsolutePath.TrimStart('/'),
-            SslMode = SslMode.Require
+            SslMode = SslMode.Require,
+            KeepAlive = 30
         };
+        builder["Trust Server Certificate"] = "true";
+        builder["Pooling"] = "true";
+        builder["Timeout"] = "30";
 
         var query = uri.Query.TrimStart('?');
         if (!string.IsNullOrEmpty(query))
@@ -202,7 +208,7 @@ static string ConvertDatabaseUrl(string databaseUrl)
 
                 var key = kv[0].ToLowerInvariant();
                 var value = Uri.UnescapeDataString(kv[1]);
-                switch (key.ToLowerInvariant())
+                switch (key)
                 {
                     case "sslmode":
                         if (Enum.TryParse<SslMode>(value, ignoreCase: true, out var sslMode))
@@ -210,25 +216,25 @@ static string ConvertDatabaseUrl(string databaseUrl)
                             builder.SslMode = sslMode;
                         }
                         break;
-
-                    case "trustservercertificate":
-                        if (bool.TryParse(value, out var trust) && trust)
-                        {
-                            builder.SslMode = SslMode.Require;
-                        }
-                        break;
-
                     default:
                         builder[key] = value;
                         break;
                 }
             }
         }
-
-        return builder.ToString();
+    }
+    else
+    {
+        builder = new NpgsqlConnectionStringBuilder(databaseUrl)
+        {
+            KeepAlive = 30
+        };
+        builder["Trust Server Certificate"] = "true";
+        builder["Pooling"] = "true";
+        builder["Timeout"] = "30";
     }
 
-    return databaseUrl;
+    return builder.ToString();
 }
 
 [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
