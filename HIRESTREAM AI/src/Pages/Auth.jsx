@@ -87,8 +87,7 @@ export default function Auth() {
 
   // ✅ FINAL SIGNUP (Connects React to SQL Server)
   const handleSignup = async () => {
-
-    const org = role === "recruiter" ? form.company : form.college;
+    const org = (role === "recruiter" ? form.company : form.college)?.trim() || "General";
     // 1. Validate required fields
     if (!form.email || !form.password || !form.name) {
       alert("Please fill in all required fields (Name, Email, Role and Password).");
@@ -101,10 +100,10 @@ export default function Auth() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fullName: form.name, // Maps to 'FullName' in your C# SignupDto
+          fullName: form.name,
           email: form.email,
           password: form.password,
-          role: role,
+          role: role || "student",
           organization: org
         })
       });

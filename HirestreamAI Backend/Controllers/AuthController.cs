@@ -26,6 +26,18 @@ namespace HirestreamAI_Backend.Controllers
         [HttpPost("signup")]
         public async Task<IActionResult> Signup([FromBody] SignupDto dto)
         {
+            if (dto == null || string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))
+            {
+                return BadRequest(new { message = "Email and Password are required fields." });
+            }
+
+            var userRole = (dto.Role ?? "student").Trim().ToLower();
+            var orgName = (dto.Organization ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(orgName))
+            {
+                orgName = userRole == "recruiter" ? "Company Name Required" : "General";
+            }
+
             // 1. One Email = One Role Policy
             var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
 
@@ -36,12 +48,6 @@ namespace HirestreamAI_Backend.Controllers
                     message = $"This email is already registered as a {existingUser.Role}. Please log in or use a different email."
                 });
             }
-            // Enforce Organization Presence
-            if (string.IsNullOrWhiteSpace(dto.Organization))
-            {
-                var orgType = dto.Role.ToLower() == "recruiter" ? "Company" : "College";
-                return BadRequest(new { message = $"{orgType} name is required." });
-            }
 
             // 2. Hash Password
             string hashedPw = BCrypt.Net.BCrypt.HashPassword(dto.Password);
@@ -49,11 +55,11 @@ namespace HirestreamAI_Backend.Controllers
             // 3. Create User with Organization (Company/College)
             var newUser = new User
             {
-                FullName = dto.FullName,
-                Email = dto.Email,
+                FullName = string.IsNullOrWhiteSpace(dto.FullName) ? "User" : dto.FullName.Trim(),
+                Email = dto.Email.Trim(),
                 PasswordHash = hashedPw,
-                Role = dto.Role.ToLower(),
-                Organization = dto.Organization,
+                Role = userRole,
+                Organization = orgName,
                 CreatedAt = DateTime.UtcNow
             };
 
