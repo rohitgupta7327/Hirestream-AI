@@ -2,13 +2,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using System.Text;
-
 using HirestreamAI_Backend.Services;
 using ImageMagick;
-
 using Microsoft.EntityFrameworkCore;
 using HirestreamAI_Backend.Data;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,39 +16,34 @@ builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, relo
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
-// 1. ENVIRONMENT & TOOLS SETUP
-// Set Ghostscript path based on OS
-if (OperatingSystem.IsWindows())
+// 1. SAFELY INITIALIZE GHOSTSCRIPT
+try
 {
-    MagickNET.SetGhostscriptDirectory(
-        @"C:\Program Files\gs\gs10.07.0\bin");
+    if (OperatingSystem.IsWindows())
+    {
+        MagickNET.SetGhostscriptDirectory(@"C:\Program Files\gs\gs10.07.0\bin");
+    }
+    else if (OperatingSystem.IsLinux())
+    {
+        MagickNET.SetGhostscriptDirectory("/usr");
+    }
 }
-else if (OperatingSystem.IsLinux())
+catch (Exception ex)
 {
-    // Railway (Linux) - Ghostscript is typically in /usr/bin
-    MagickNET.SetGhostscriptDirectory("/usr");
+    Console.WriteLine($"Ghostscript setup warning: {ex.Message}");
 }
 
-// 2. DATABASE CONFIGURATION (PostgreSQL / Railway compatible)
-// 2. DATABASE CONFIGURATION (Railway PostgreSQL)
-
-// =======================
-// DATABASE CONFIGURATION
-// =======================
-
+// 2. DATABASE CONFIGURATION
 var connectionString =
     Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
     ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
 if (string.IsNullOrWhiteSpace(connectionString))
 {
-    throw new InvalidOperationException(
-        "ConnectionStrings__DefaultConnection not found.");
+    throw new InvalidOperationException("ConnectionStrings__DefaultConnection not found.");
 }
 
-// Convert PostgreSQL URI format to Npgsql format if needed (for Railway)
 connectionString = ConvertDatabaseUrl(connectionString);
-
 Console.WriteLine("Database connection string loaded.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -59,7 +51,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // 3. CORE SERVICES
 builder.Services.AddControllers();
-builder.Services.AddHttpClient(); // Required for AIService
+builder.Services.AddHttpClient();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -68,7 +60,6 @@ builder.Services.AddScoped<AIService>();
 builder.Services.AddScoped<ResumeParser>();
 builder.Services.AddTransient<IEmailService, EmailService>();
 builder.Services.AddTransient<IPdfRoadmapService, PdfRoadmapService>();
-
 
 // 5. JWT AUTHENTICATION SETUP
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "HireStreamAI_Permanent_Secret_Key_2026_Secure";
@@ -94,40 +85,45 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.SetIsOriginAllowed(_ => true)
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
 
 var app = builder.Build();
 
-// 7. HTTP PIPELINE CONFIGURATION
+// 7. HTTP PIPELINE CONFIGURATION (CRITICAL MIDDLEWARE ORDER)
 app.UseSwagger();
 app.UseSwaggerUI();
 
-
-// Order is critical here: Routing -> Auth -> Endpoints
-app.UseRouting();
+// CORS MUST BE BEFORE USEROUTING
 app.UseCors("AllowAll");
+
+app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
-
-// 8. DATABASE AUTO-CREATION (Safe Development Mode)
-using (var scope = app.Services.CreateScope())
+// 8. DATABASE AUTO-MIGRATION
+try
 {
-    // Change ApplicationDbContext -> AppDbContext
-    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-    await dbContext.Database.MigrateAsync();
+    using (var scope = app.Services.CreateScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await dbContext.Database.MigrateAsync();
+    }
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Database Migration Warning: {ex.Message}");
 }
 
 Console.WriteLine("Application Starting...");
 Console.WriteLine($"Environment: {app.Environment.EnvironmentName}");
-Console.WriteLine($"Database: {connectionString}");
+
 // 9. START THE SERVER
 app.Run();
 
@@ -184,8 +180,6 @@ static string ConvertDatabaseUrl(string databaseUrl)
                         break;
 
                     case "trustservercertificate":
-                        // TrustServerCertificate is obsolete in Npgsql.
-                        // If "true", map to Require (or Disable certificate chain validation if using older versions):
                         if (bool.TryParse(value, out var trust) && trust)
                         {
                             builder.SslMode = SslMode.Require;
@@ -203,18 +197,4 @@ static string ConvertDatabaseUrl(string databaseUrl)
     }
 
     return databaseUrl;
-}
-
-static SslMode ParseSslMode(string sslModeValue)
-{
-    return sslModeValue?.ToLowerInvariant() switch
-    {
-        "disable" => SslMode.Disable,
-        "allow" => SslMode.Allow,
-        "prefer" => SslMode.Prefer,
-        "require" => SslMode.Require,
-        "verify-ca" => SslMode.VerifyCA,
-        "verify-full" => SslMode.VerifyFull,
-        _ => SslMode.Require,
-    };
 }
