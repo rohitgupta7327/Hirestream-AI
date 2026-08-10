@@ -13,8 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
 
 // Fallback to port 8080 if Railway doesn't explicitly inject a PORT variable
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
 
 // 1. SAFELY INITIALIZE GHOSTSCRIPT
 try
@@ -123,7 +122,7 @@ catch (Exception ex)
 
 Console.WriteLine("Application Starting...");
 Console.WriteLine($"Environment: {app.Environment.EnvironmentName}");
-
+app.MapGet("/", () => Results.Ok("HirestreamAI Backend is running!"));
 // 9. START THE SERVER
 app.Run();
 
