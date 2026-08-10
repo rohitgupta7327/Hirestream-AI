@@ -191,7 +191,7 @@ static string ConvertDatabaseUrl(string databaseUrl)
             Username = userInfo.Length > 0 ? Uri.UnescapeDataString(userInfo[0]) : string.Empty,
             Password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : string.Empty,
             Database = uri.AbsolutePath.TrimStart('/'),
-            SslMode = SslMode.Require,
+            SslMode = SslMode.Prefer,
             KeepAlive = 30
         };
         builder["Trust Server Certificate"] = "true";
@@ -229,6 +229,10 @@ static string ConvertDatabaseUrl(string databaseUrl)
         {
             KeepAlive = 30
         };
+        if (builder.SslMode == SslMode.Require && !string.IsNullOrEmpty(builder.Host) && (builder.Host.Contains("localhost") || builder.Host.Contains("railway.internal") || builder.Host.Contains("127.0.0.1")))
+        {
+            builder.SslMode = SslMode.Prefer;
+        }
         builder["Trust Server Certificate"] = "true";
         builder["Pooling"] = "true";
         builder["Timeout"] = "30";
