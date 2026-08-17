@@ -123,11 +123,7 @@ namespace HirestreamAI_Backend.Controllers
         private string GenerateJwtToken(User user)
         {
             // 1. Get the Key and ensure it is treated as a UTF8 byte array
-            var rawJwtKey = _config["Jwt:Key"];
-            var jwtKey = (!string.IsNullOrWhiteSpace(rawJwtKey) && !rawJwtKey.StartsWith("YOUR_") && rawJwtKey.Length >= 32)
-                ? rawJwtKey
-                : "HireStreamAI_Permanent_Secret_Key_2026_Stay_Secure";
-
+            var jwtKey = _config["Jwt:Key"] ?? "HireStreamAI_Permanent_Secret_Key_2026_Secure";
             var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
 
             // 2. Create the Security Key

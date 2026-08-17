@@ -45,11 +45,7 @@ connectionString = ConvertDatabaseUrl(connectionString);
 Console.WriteLine($"Database connection string loaded: {connectionString.Split(';')[0]}");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString, npgsqlOptions =>
-        npgsqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 5,
-            maxRetryDelay: TimeSpan.FromSeconds(10),
-            errorCodesToAdd: null)));
+    options.UseNpgsql(connectionString));
 
 // 3. CORE SERVICES
 builder.Services.AddControllers();
@@ -64,11 +60,7 @@ builder.Services.AddTransient<IEmailService, EmailService>();
 builder.Services.AddTransient<IPdfRoadmapService, PdfRoadmapService>();
 
 // 5. JWT AUTHENTICATION SETUP
-var rawJwtKey = builder.Configuration["Jwt:Key"];
-var jwtKey = (!string.IsNullOrWhiteSpace(rawJwtKey) && !rawJwtKey.StartsWith("YOUR_") && rawJwtKey.Length >= 32)
-    ? rawJwtKey
-    : "HireStreamAI_Permanent_Secret_Key_2026_Stay_Secure";
-
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "HireStreamAI_Permanent_Secret_Key_2026_Secure";
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -205,9 +197,6 @@ static string ConvertDatabaseUrl(string databaseUrl)
         builder["Trust Server Certificate"] = "true";
         builder["Pooling"] = "true";
         builder["Timeout"] = "30";
-        builder["KeepAlive"] = "15";
-        builder["Connection Idle Lifetime"] = "30";
-        builder["Connection Lifetime"] = "300";
 
         var query = uri.Query.TrimStart('?');
         if (!string.IsNullOrEmpty(query))
@@ -238,7 +227,7 @@ static string ConvertDatabaseUrl(string databaseUrl)
     {
         builder = new NpgsqlConnectionStringBuilder(databaseUrl)
         {
-            KeepAlive = 15
+            KeepAlive = 30
         };
         if (builder.SslMode == SslMode.Require && !string.IsNullOrEmpty(builder.Host) && (builder.Host.Contains("localhost") || builder.Host.Contains("railway.internal") || builder.Host.Contains("127.0.0.1")))
         {
@@ -247,8 +236,6 @@ static string ConvertDatabaseUrl(string databaseUrl)
         builder["Trust Server Certificate"] = "true";
         builder["Pooling"] = "true";
         builder["Timeout"] = "30";
-        builder["Connection Idle Lifetime"] = "30";
-        builder["Connection Lifetime"] = "300";
     }
 
     return builder.ToString();
