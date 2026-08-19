@@ -81,19 +81,23 @@ builder.Services.AddAuthorization();
 // 6. CORS SETUP
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.SetIsOriginAllowed(_ => true)
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        policy
+            .WithOrigins(
+                "https://hirestream-ai.vercel.app",
+                "http://localhost:5173"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
 var app = builder.Build();
 
 // 7. HTTP PIPELINE CONFIGURATION (CRITICAL MIDDLEWARE ORDER)
-app.UseCors("AllowAll");
+app.UseCors("AllowFrontend");
 
 app.UseExceptionHandler(errorApp =>
 {
